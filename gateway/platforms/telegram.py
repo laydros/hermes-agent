@@ -18,6 +18,14 @@ from typing import Dict, List, Optional, Any
 
 logger = logging.getLogger(__name__)
 
+_TELEGRAM_DOCUMENT_IMAGE_TYPES = {
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".webp": "image/webp",
+    ".gif": "image/gif",
+}
+
 try:
     from telegram import Update, Bot, Message, InlineKeyboardButton, InlineKeyboardMarkup
     try:
@@ -3139,6 +3147,17 @@ class TelegramAdapter(BasePlatformAdapter):
                     event.media_types = [SUPPORTED_VIDEO_TYPES[ext]]
                     event.message_type = MessageType.VIDEO
                     logger.info("[Telegram] Cached user video document at %s", cached_path)
+                    await self.handle_message(event)
+                    return
+
+                if ext in _TELEGRAM_DOCUMENT_IMAGE_TYPES:
+                    file_obj = await doc.get_file()
+                    image_bytes = await file_obj.download_as_bytearray()
+                    cached_path = cache_image_from_bytes(bytes(image_bytes), ext=ext)
+                    event.media_urls = [cached_path]
+                    event.media_types = [_TELEGRAM_DOCUMENT_IMAGE_TYPES[ext]]
+                    event.message_type = MessageType.IMAGE
+                    logger.info("[Telegram] Cached user image document at %s", cached_path)
                     await self.handle_message(event)
                     return
 
