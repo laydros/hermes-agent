@@ -185,6 +185,62 @@ def _make_photo(file_obj=None):
 
 class TestDocumentDownloadBlock:
     @pytest.mark.asyncio
+    async def test_png_document_is_treated_as_image(self, adapter):
+        file_obj = _make_file_obj(b"fake-png")
+        doc = _make_document(file_name="image.png", mime_type="image/png", file_size=1024, file_obj=file_obj)
+        msg = _make_message(document=doc)
+        update = _make_update(msg)
+
+        await adapter._handle_media_message(update, MagicMock())
+        event = adapter.handle_message.call_args[0][0]
+        assert event.message_type == MessageType.IMAGE
+        assert len(event.media_urls) == 1
+        assert os.path.exists(event.media_urls[0])
+        assert event.media_types == ["image/png"]
+
+    @pytest.mark.asyncio
+    async def test_jpg_document_is_treated_as_image(self, adapter):
+        file_obj = _make_file_obj(b"fake-jpg")
+        doc = _make_document(file_name="image.jpg", mime_type="image/jpeg", file_size=1024, file_obj=file_obj)
+        msg = _make_message(document=doc)
+        update = _make_update(msg)
+
+        await adapter._handle_media_message(update, MagicMock())
+        event = adapter.handle_message.call_args[0][0]
+        assert event.message_type == MessageType.IMAGE
+        assert len(event.media_urls) == 1
+        assert os.path.exists(event.media_urls[0])
+        assert event.media_types == ["image/jpeg"]
+
+    @pytest.mark.asyncio
+    async def test_webp_document_is_treated_as_image(self, adapter):
+        file_obj = _make_file_obj(b"fake-webp")
+        doc = _make_document(file_name="image.webp", mime_type="image/webp", file_size=1024, file_obj=file_obj)
+        msg = _make_message(document=doc)
+        update = _make_update(msg)
+
+        await adapter._handle_media_message(update, MagicMock())
+        event = adapter.handle_message.call_args[0][0]
+        assert event.message_type == MessageType.IMAGE
+        assert len(event.media_urls) == 1
+        assert os.path.exists(event.media_urls[0])
+        assert event.media_types == ["image/webp"]
+
+    @pytest.mark.asyncio
+    async def test_gif_document_is_treated_as_image(self, adapter):
+        file_obj = _make_file_obj(b"fake-gif")
+        doc = _make_document(file_name="image.gif", mime_type="image/gif", file_size=1024, file_obj=file_obj)
+        msg = _make_message(document=doc)
+        update = _make_update(msg)
+
+        await adapter._handle_media_message(update, MagicMock())
+        event = adapter.handle_message.call_args[0][0]
+        assert event.message_type == MessageType.IMAGE
+        assert len(event.media_urls) == 1
+        assert os.path.exists(event.media_urls[0])
+        assert event.media_types == ["image/gif"]
+
+    @pytest.mark.asyncio
     async def test_supported_pdf_is_cached(self, adapter):
         pdf_bytes = b"%PDF-1.4 fake"
         file_obj = _make_file_obj(pdf_bytes)
@@ -304,6 +360,16 @@ class TestDocumentDownloadBlock:
         await adapter._handle_media_message(update, MagicMock())
         event = adapter.handle_message.call_args[0][0]
         assert "Unsupported" in event.text
+
+    @pytest.mark.asyncio
+    async def test_unsupported_document_extension_rejected(self, adapter):
+        doc = _make_document(file_name="payload.exe", mime_type="application/octet-stream", file_size=100)
+        msg = _make_message(document=doc)
+        update = _make_update(msg)
+
+        await adapter._handle_media_message(update, MagicMock())
+        event = adapter.handle_message.call_args[0][0]
+        assert "Unsupported document type '.exe'" in event.text
 
     @pytest.mark.asyncio
     async def test_unicode_decode_error_handled(self, adapter):
